@@ -1,52 +1,36 @@
-#!/usr/bin/env python3
-
-from flask import Flask, jsonify, request, make_response
-from flask_migrate import Migrate
-from flask_restful import Api, Resource
-
-from models import db, Plant
+from flask import Flask, jsonify, request
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///plants.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.json.compact = False
 
-migrate = Migrate(app, db)
-db.init_app(app)
+# Define your plants data (assuming it's a list of dictionaries)
+plants = [
+    {
+        "id": 1,
+        "name": "Aloe",
+        "image": "./images/aloe.jpg",
+        "price": 11.50,
+        "is_in_stock": True
+    },
+    # Other plants...
+]
 
-api = Api(app)
+# Update Route - PATCH /plants/:id
+@app.route('/plants/<int:plant_id>', methods=['PATCH'])
+def update_plant(plant_id):
+    plant = next((p for p in plants if p['id'] == plant_id), None)
+    if not plant:
+        return jsonify({'error': 'Plant not found'}), 404
 
-class Plants(Resource):
+    data = request.get_json()
+    plant['is_in_stock'] = data['is_in_stock']
+    return jsonify(plant)
 
-    def get(self):
-        plants = [plant.to_dict() for plant in Plant.query.all()]
-        return make_response(jsonify(plants), 200)
-
-    def post(self):
-
-        data = request.get_json()
-
-        new_plant = Plant(
-            name=data['name'],
-            image=data['image'],
-            price=data['price'],
-        )
-
-        db.session.add(new_plant)
-        db.session.commit()
-
-        return make_response(new_plant.to_dict(), 201)
-
-api.add_resource(Plants, '/plants')
-
-class PlantByID(Resource):
-
-    def get(self, id):
-        plant = Plant.query.filter_by(id=id).first().to_dict()
-        return make_response(jsonify(plant), 200)
-
-api.add_resource(PlantByID, '/plants/<int:id>')
-        
+# Destroy Route - DELETE /plants/:id
+@app.route('/plants/<int:plant_id>', methods=['DELETE'])
+def delete_plant(plant_id):
+    global plants
+    plants = [p for p in plants if p['id'] != plant_id]
+    return '', 204
 
 if __name__ == '__main__':
-    app.run(port=5555, debug=True)
+    app.run()
