@@ -53,7 +53,7 @@ class TestPlant:
             db.session.add(lo)
             db.session.commit()
             
-            response = app.test_client().delete(f'/plants/{lo.id}')
+            response = app.test_client().delete('/plants/{}'.format(lo.id))
             data = response.data.decode()
 
             assert(not data)
